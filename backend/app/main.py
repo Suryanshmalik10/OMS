@@ -1,7 +1,10 @@
 from fastapi import FastAPI
 from app.db import connect_db, disconnect_db
+from app.routers import regions
 
 app = FastAPI(title="RailTel OMS", version="0.1.0")
+
+app.include_router(regions.router)
 
 
 @app.on_event("startup")
@@ -17,4 +20,3 @@ async def on_shutdown():
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
-
