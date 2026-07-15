@@ -3,6 +3,7 @@ import asyncpg
 from uuid import UUID
 
 from app.db import get_db
+from app.deps import get_current_user, require_admin
 from app.schemas.server import ServerCreate, ServerUpdate, ServerOut
 from app.crud import server as server_crud
 
@@ -10,7 +11,7 @@ router = APIRouter(prefix="/servers", tags=["Servers"])
 
 
 @router.post("/", response_model=ServerOut, status_code=201)
-async def create_server(payload: ServerCreate, conn: asyncpg.Connection = Depends(get_db)):
+async def create_server(payload: ServerCreate, conn: asyncpg.Connection = Depends(get_db), _: dict = Depends(require_admin)):
     try:
         return await server_crud.create_server(
             conn, payload.variant_id, payload.server_type.value, payload.dc_dr.value,
@@ -24,12 +25,12 @@ async def create_server(payload: ServerCreate, conn: asyncpg.Connection = Depend
 
 
 @router.get("/", response_model=list[ServerOut])
-async def list_servers(conn: asyncpg.Connection = Depends(get_db)):
+async def list_servers(conn: asyncpg.Connection = Depends(get_db), _: dict = Depends(get_current_user)):
     return await server_crud.get_all_servers(conn)
 
 
 @router.get("/{server_id}", response_model=ServerOut)
-async def get_server(server_id: UUID, conn: asyncpg.Connection = Depends(get_db)):
+async def get_server(server_id: UUID, conn: asyncpg.Connection = Depends(get_db), _: dict = Depends(get_current_user)):
     server = await server_crud.get_server_by_id(conn, server_id)
     if not server:
         raise HTTPException(status_code=404, detail="Server not found")
@@ -37,7 +38,7 @@ async def get_server(server_id: UUID, conn: asyncpg.Connection = Depends(get_db)
 
 
 @router.put("/{server_id}", response_model=ServerOut)
-async def update_server(server_id: UUID, payload: ServerUpdate, conn: asyncpg.Connection = Depends(get_db)):
+async def update_server(server_id: UUID, payload: ServerUpdate, conn: asyncpg.Connection = Depends(get_db), _: dict = Depends(require_admin)):
     server = await server_crud.update_server(
         conn, server_id,
         payload.server_type.value if payload.server_type else None,
@@ -52,7 +53,7 @@ async def update_server(server_id: UUID, payload: ServerUpdate, conn: asyncpg.Co
 
 
 @router.delete("/{server_id}", status_code=204)
-async def delete_server(server_id: UUID, conn: asyncpg.Connection = Depends(get_db)):
+async def delete_server(server_id: UUID, conn: asyncpg.Connection = Depends(get_db), _: dict = Depends(require_admin)):
     deleted = await server_crud.delete_server(conn, server_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Server not found")
