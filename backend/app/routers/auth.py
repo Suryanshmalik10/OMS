@@ -15,8 +15,7 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 async def register(
     payload: UserCreate,
     conn: asyncpg.Connection = Depends(get_db),
-    # Uncomment once you have at least one admin account created manually:
-    # current_user: dict = Depends(require_admin),
+    current_user: dict = Depends(require_admin),
 ):
     existing = await user_crud.get_user_by_username(conn, payload.username)
     if existing:
